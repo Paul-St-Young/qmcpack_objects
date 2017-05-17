@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0,'../library')
 import input_xml, h5_conf
 
-def load_walker_as_pset(h5config,xml_inp,iwalker=0):
+def load_walker_as_pset(h5config,xml_inp,iwalker=0,warn_out=True):
     """ load iwalker from h5config ('*.config.h5') and format into
      a dictionary suitable for xml_inp's quantum particle set
     """
@@ -36,6 +36,11 @@ def load_walker_as_pset(h5config,xml_inp,iwalker=0):
     # put walker in simulation cell (-L/2,L/2)
     # ==========================================
     frac_pos = np.dot(pos,inv_axes)
+    out_idx  = np.append( np.where(frac_pos.flatten()>1.0), np.where(frac_pos.flatten()<0.0) )
+    out_idx.sort()
+    if warn_out and len(out_idx)!=0:
+        raise RuntimeError('particle(s) %s outside the box'%str( np.unique(out_idx) ))
+    # end if
     lower_bound = int( frac_pos.min()-1 )
     walker = np.dot((frac_pos %1)-0.5,axes)
     
