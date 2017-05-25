@@ -1,4 +1,6 @@
-import xml.etree.ElementTree as ET
+#import xml.etree.ElementTree as etree
+import lxml.etree as etree
+import numpy as np
 
 class InputXml:
     def __init__(self):
@@ -6,15 +8,19 @@ class InputXml:
     # end def
     def read(self,fname):
         self.fname = fname
-        self.root = ET.parse(fname)
+        parser = etree.XMLParser(remove_blank_text=True)
+        self.root = etree.parse(fname,parser)
     # end def
-    def write(self,fname=None):
+    def write(self,fname=None,pretty_print=True):
         if fname is None:
-            self.root.write(self.fname)
+            self.root.write(self.fname,pretty_print=pretty_print)
         else:
-            self.root.write(fname)
+            self.root.write(fname,pretty_print=pretty_print)
         # end if
     # end def
+    def show(self,node):
+        """ print text representation of an xml node """
+        print etree.tostring(node)
     
     # pass along xpath expression e.g. './/particleset'
     def find(self,xpath): 
@@ -45,6 +51,15 @@ class InputXml:
         # end if
         return text
     # end def
-    # use str.split() for text2arr
+
+    @classmethod
+    def text2arr(self,text,dtype=float):
+        tlist = text.strip(' ').strip('\n').split('\n')
+        if len(tlist) == 1:
+            return np.array(tlist,dtype=dtype)
+        else:
+            return np.array([line.split() for line in tlist],dtype=dtype) 
+        # end if
+    # end def
 
 # end class

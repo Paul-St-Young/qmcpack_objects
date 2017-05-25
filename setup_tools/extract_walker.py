@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-
 import numpy as np
-import sys
-sys.path.insert(0,'../library')
 import input_xml, h5_conf
 
 def load_walker_as_pset(h5config,xml_inp,iwalker=0,warn_out=True):
@@ -33,16 +30,19 @@ def load_walker_as_pset(h5config,xml_inp,iwalker=0,warn_out=True):
     axes = np.array(axes_text.split(),dtype=float).reshape(3,3)
     inv_axes = np.linalg.inv(axes)
     
-    # put walker in simulation cell (-L/2,L/2)
+    # put walker in simulation cell [0,L)
     # ==========================================
     frac_pos = np.dot(pos,inv_axes)
     out_idx  = np.append( np.where(frac_pos.flatten()>1.0), np.where(frac_pos.flatten()<0.0) )
+    out_idx  = out_idx//3
     out_idx.sort()
     if warn_out and len(out_idx)!=0:
         raise RuntimeError('particle(s) %s outside the box'%str( np.unique(out_idx) ))
     # end if
-    lower_bound = int( frac_pos.min()-1 )
-    walker = np.dot((frac_pos %1)-0.5,axes)
+    #lower_bound = int( frac_pos.min()-1 )
+    #frac_pos_in_box = (lower_bound+frac_pos)%1
+    frac_pos_in_box = frac_pos - np.floor(frac_pos)
+    walker = np.dot( frac_pos_in_box,axes )
     
     # get walker format from xml particleset
     # ==========================================
@@ -71,4 +71,15 @@ def load_walker_as_pset(h5config,xml_inp,iwalker=0,warn_out=True):
 # end def load_walker_as_pset
 
 if __name__ == '__main__':
-    pass
+    import argparse
+    parser = argparse.ArgumentParser(description='extract walkers from QMCPACK conf.h5')
+    parser.add_argument('--fname',type=str,required=True,help="input xml")
+    parser.add_argument('--fxml',type=str,required=True,help="config.h5")
+    parser.add_argument('--no_warn_out',action='store_false',help="continue even if particles outside")
+    parser.add_argument('--iwalker',type=int,default=0,help="index of walker to extract")
+    args = parser.parse_args()
+
+    pdict = load_walker_as_pset(args.fname,args.fxml,iwalker=args.iwalker
+            ,warn_out=args.no_warn_out)
+    print pdict
+
