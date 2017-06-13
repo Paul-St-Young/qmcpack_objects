@@ -8,10 +8,10 @@ class PwscfH5:
             'gvectors':'electrons/kpoint_0/gvectors',
             'nkpt':'electrons/number_of_kpoints',
             'nspin':'electrons/number_of_spins',
-            'nstate':'electrons/kpoint_0/spin_0/number_of_states' # !!!! same number of states per kpt
+            'nstate':'electrons/kpoint_0/spin_0/number_of_states', # !!!! same number of states per kpt
+            'axes':'supercell/primitive_vectors'
         }
         self.dtypes = {
-            'gvectors':float,
             'nkpt':int,
             'nspin':int,
             'nstate':int
@@ -33,8 +33,7 @@ class PwscfH5:
     def get(self,name):
         """ get value array of a known entry """
         loc   = self.locations[name]
-        dtype = self.dtypes[name]
-        return self.fp[loc].value.astype(dtype)
+        return self.fp[loc].value
 
     # =======================================================================
     # Advance Read Methods i.e. more specific to QMCPACK 3.0.0
@@ -200,6 +199,8 @@ class PwscfH5:
       species  = np.unique(elem)
       h5_handle.create_dataset('atoms/number_of_species',data=[len(species)])
       species_map = {'H':1,'He':2,'Li':3,'Be':4}
+      species_ids = [species_map[name] for name in elem]
+      h5_handle.create_dataset('atoms/species_ids',data=species_ids)
       for ispec in range(len(species)):
         spec_grp = h5_handle.create_group('atoms/species_%d'%ispec)
 
