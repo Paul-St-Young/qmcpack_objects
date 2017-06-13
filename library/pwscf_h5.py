@@ -199,7 +199,7 @@ class PwscfH5:
       # write species info
       species  = np.unique(elem)
       h5_handle.create_dataset('atoms/number_of_species',data=[len(species)])
-      species_map = {'H':0,'He':1,'Li':2,'Be':3}
+      species_map = {'H':1,'He':2,'Li':3,'Be':4}
       for ispec in range(len(species)):
         spec_grp = h5_handle.create_group('atoms/species_%d'%ispec)
 
