@@ -183,7 +183,8 @@ class PwscfH5:
       """
 
       # write lattice
-      h5_handle.create_dataset('supercell/primitive_vectors',data=cell.a)
+      axes = cell.lattice_vectors()
+      h5_handle.create_dataset('supercell/primitive_vectors',data=axes)
 
       # write atoms
       def read_atoms(atext):
