@@ -53,12 +53,17 @@ class InputXml:
     # end def
 
     @classmethod
-    def text2arr(self,text,dtype=float):
+    def text2arr(self,text,dtype=float,flatten=False):
         tlist = text.strip(' ').strip('\n').split('\n')
         if len(tlist) == 1:
-            return np.array(tlist,dtype=dtype)
+          return np.array(tlist,dtype=dtype)
         else:
+          if flatten:
+            mytext = '\n'.join(['\n'.join(line.split()) for line in tlist])
+            return self.text2arr(mytext)
+          else:
             return np.array([line.split() for line in tlist],dtype=dtype) 
+          # end if
         # end if
     # end def
 
