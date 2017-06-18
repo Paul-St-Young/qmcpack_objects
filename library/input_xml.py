@@ -3,9 +3,14 @@ import lxml.etree as etree
 import numpy as np
 
 class InputXml:
+
     def __init__(self):
         pass
     # end def
+
+    # =======================================================================
+    # Basic Methods (applicable to all xml files)
+    # =======================================================================
     def read(self,fname):
         self.fname = fname
         parser = etree.XMLParser(remove_blank_text=True)
@@ -30,13 +35,6 @@ class InputXml:
         return self.root.findall(xpath)
     # end def
 
-    # QMCPACK specific
-    def find_pset(self,name='e'):
-        """ return xml node specifying the particle set with given name
-         by default return the quantum particle set 'e' """
-        return self.find('.//particleset[@name="%s"]'%name)
-    # end find_pset
-
     @classmethod
     def arr2text(self,arr):
         """ format convert a numpy array into a text string """
@@ -60,15 +58,34 @@ class InputXml:
         else:
           if flatten:
             mytext = '\n'.join(['\n'.join(line.split()) for line in tlist])
-            return self.text2arr(mytext)
+            myarr = self.text2arr(mytext)
+            return myarr.flatten()
           else:
             return np.array([line.split() for line in tlist],dtype=dtype) 
           # end if
         # end if
     # end def
 
+    @classmethod
+    def node2dict(self,node):
+      entry = dict(node.attrib)
+      if node.text:
+        entry.update({'text':node.text})
+      # end if
+      return entry
+    # end def node2dict
+
     # =======================================================================
-    # Advance Read Methods i.e. specific to pyscf or QMCPACK 3.0
+    # Simple Methods Specific to QMCPACK
+    # =======================================================================
+    def find_pset(self,name='e'):
+        """ return xml node specifying the particle set with given name
+         by default return the quantum particle set 'e' """
+        return self.find('.//particleset[@name="%s"]'%name)
+    # end find_pset
+
+    # =======================================================================
+    # Advance Methods i.e. specific to pyscf or QMCPACK 3.0
     # =======================================================================
 
     # ----------------
@@ -190,6 +207,30 @@ class InputXml:
 
       return pset_node
     # end def particleset_from_hdf5
+    # ----------------
+
+    # ----------------
+    # numerics
+    # grid
+    def radial_function(self,node):
+      assert node.tag=='radfunc'
+
+      # read grid definitions ( e.g. np.linspace(ri,rf,npts) for linear grid )
+      gnode = node.find('.//grid')      # expected attributes: 
+      grid_defs = self.node2dict(gnode) #   type,ri,rf,npts,units
+      ri = float(grid_defs['ri'])
+      rf = float(grid_defs['rf'])
+      npts = int(grid_defs['npts'])
+      gtype = grid_defs['type']
+      units = grid_defs['units']
+
+      # read 
+      dnode = node.find('.//data')
+      rval  = self.text2arr(dnode.text,flatten=True) # read as 1D vector
+      assert len(rval) == npts
+      entry = {'type':gtype,'units':units,'ri':ri,'rf':rf,'npts':npts,'rval':rval}
+      return entry
+    # end def radial_function
     # ----------------
 
 # end class
