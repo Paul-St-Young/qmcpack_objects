@@ -183,23 +183,14 @@ class PwscfH5:
       """
 
       # write lattice
-      axes = cell.lattice_vectors()
+      axes = cell.lattice_vectors() # always in bohr
       h5_handle.create_dataset('supercell/primitive_vectors',data=axes)
 
+
       # write atoms
-      def read_atoms(atext):
-	# read pyscf atom text
-	lines = atext.split(';')
-	elem  = []
-	pos   = []
-	for line in lines:
-	    tokens = line.strip('\n').strip(' ').split()
-	    elem.append(tokens[0])
-	    pos.append( map(float,tokens[-3:]) )
-	# end for line
-	return elem,np.array(pos)
-      # end def read_atoms
-      elem,pos = read_atoms(cell.atom)
+      pos  = cell.atom_coords() # always in bohr
+      elem = [cell.atom_symbol(i) for i in range(cell.natm)]
+      assert len(pos) == len(elem)
       h5_handle.create_dataset('atoms/number_of_atoms',data=[len(elem)])
       h5_handle.create_dataset('atoms/positions',data=pos)
 
