@@ -78,6 +78,45 @@ class PwscfH5:
                 )
         return evals
 
+    @classmethod
+    def psig_to_psir(self,gvecs,psig,rgrid_shape,vol):
+      """ contruct orbital given in planewave basis
+       Inputs: 
+        gvecs: gvectors in reciprocal lattice units i.e. integers
+        psig: planewave coefficients, should have the same length as gvecs
+        vol: simulation cell volume, used to normalized fft
+       Output:
+        rgrid: orbital on a real-space grid """
+      assert len(gvecs) == len(psig)
+    
+      kgrid = np.zeros(rgrid_shape,dtype=complex)
+      for igvec in range(len(gvecs)):
+        kgrid[tuple(gvecs[igvec])] = psig[igvec]
+      # end for
+      rgrid = np.fft.ifftn(kgrid) * np.prod(rgrid_shape)/vol
+      return rgrid
+    # end def psig_to_psir
+
+    def get_psir_from_psig(self,ikpt,ispin,istate,rgrid_shape=None,mesh_factor=1.0):
+      """ FFT psig to psir at the given (kpoint,spin,state) """ 
+      # get lattice which defines the FFT grid
+      axes = self.get('axes')
+      vol  = np.dot(np.cross(axes[0],axes[1]),axes[2])
+      # get MO in plane-wave basis
+      gvecs = self.get('gvectors').astype(int)
+      psig_arr = self.psig(ikpt=ikpt,ispin=ispin,istate=istate)
+      psig = psig_arr[:,0] + 1j*psig_arr[:,1]
+      # determine real-space grid size (QMCPACK 3.0.0 convention)
+      #  ref: QMCWaveFunctions/Experimental/EinsplineSetBuilder.cpp::ReadGvectors_ESHDF()
+      if rgrid_shape is not None: # !!!! override grid size
+        pass
+      else:
+        rgrid_shape = map(int, np.ceil(gvecs.max(axis=0)*4*mesh_factor) )
+      # end if
+      psir = self.psig_to_psir(gvecs,psig,rgrid_shape,vol)
+      return psir
+    # end def get_psir_from_psig
+
     # build entire eigensystem as a dataframe
     def eigensystem(self):
         """ construct dataframe containing eigenvalues and eigenvectors
