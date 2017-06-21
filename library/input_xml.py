@@ -127,44 +127,20 @@ class InputXml:
       
     # ----------------
     # particleset
-    @staticmethod
-    def atom_text(elem,pos):
-      assert len(elem) == len(pos)
-      lines = []
-      for iatom in range(len(elem)):
-          mypos = pos[iatom]
-          line = '%5s  %10.6f  %10.6f  %10.6f' % (elem[iatom],mypos[0],mypos[1],mypos[2])
-          lines.append(line)
-      # end for iatom
-      atext = ';\n'.join(lines)
-      return atext
-    # end def 
-    @staticmethod
-    def read_atoms(atext):
-      # inverse of atom_text
-      lines = atext.split(';')
-      elem  = []
-      pos   = []
-      for line in lines:
-          tokens = line.strip('\n').strip(' ').split()
-          elem.append(tokens[0])
-          pos.append( map(float,tokens[-3:]) )
-      # end for line
-      return np.array(elem),np.array(pos)
-    # end def read_atoms
-    """ # !!!dangerous!!!! hard to keep this consistent with pwscf.h5!
-    def particleset_from_cell(self,cell,name='ion0'):
-      elem,pos = self.read_atoms(cell.atom)
-      species  = elem.unique()
-      for name in species:
-        atom_idx = np.where(elem==name)
-        sp_grp = etree.Element('group',{'name':name,'size':len(atom_idx)})
-      # end for name
-      # build <particleset>
-      pset_node = etree.Element('particleset',{'name':'ion0'})
-      return pset_node
-    # end def particleset_from_cell
-    """
+    ## !!!dangerous!!!! hard to keep this consistent with pwscf.h5!
+    #def particleset_from_cell(self,cell,name='ion0'):
+    #  elem = [cell.atomic_symbol(i) for i in range(cell.natm)]
+    #  pos  = cell.atomic_coords() # reply on pyscf to return in a.u.
+    #  assert len(pos) == len(elem)
+    #  species  = elem.unique()
+    #  for name in species:
+    #    atom_idx = np.where(elem==name)
+    #    sp_grp = etree.Element('group',{'name':name,'size':len(atom_idx)})
+    #  # end for name
+    #  # build <particleset>
+    #  pset_node = etree.Element('particleset',{'name':'ion0'})
+    #  return pset_node
+    ## end def particleset_from_cell
     def particleset_from_hdf5(self,h5_handle):
       atom_grp = h5_handle.get('atoms')
       nspec = atom_grp.get('number_of_species').value[0]
@@ -182,6 +158,7 @@ class InputXml:
         # locate particles of this species
         atom_idx = np.where(species_ids==ispec)
         pos_arr  = positions[atom_idx]
+        natom    = len(pos_arr)
 
         # build xml node
         charge_node = etree.Element('parameter',{'name':'charge'})
@@ -192,7 +169,7 @@ class InputXml:
         pos_node.text = self.arr2text(pos_arr)
         grp_children = [charge_node,valence_node,pos_node]
 
-        grp_node = etree.Element('group',{'name':name})
+        grp_node = etree.Element('group',{'name':name,'size':natom})
         for child in grp_children:
           grp_node.append(child)
         # end for
