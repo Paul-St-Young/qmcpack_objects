@@ -16,15 +16,22 @@ class PwscfH5:
             'nspin':int,
             'nstate':int
         }
+        self.fp = None # h5py.File object (like a file pointer)
+    def __del__(self):
+      if self.fp is not None:
+        self.fp.close()
 
     # =======================================================================
     # Basic Read Methods i.e. basic read/write and path access
     # =======================================================================
-    def read(self,fname):
+    def read(self,fname,force=False):
         """ open 'fname' for reading and save handle in this class """
         if not os.path.isfile(fname):
-            raise RuntimeError('%s not found' % fname)
-        self.fp = h5py.File(fname)
+          raise RuntimeError('%s not found' % fname)
+        if (self.fp is None) or force:
+          self.fp = h5py.File(fname)
+        else:
+          raise RuntimeError('already tracking a file %s'%str(self.fp))
 
     def val(self,loc):
         """ get value array of an arbitrary entry at location 'loc' """
@@ -204,9 +211,8 @@ class PwscfH5:
       # transfer orbital info
       h5_handle.create_dataset('electrons/number_of_electrons',data=nelec)
       h5_handle.create_dataset('electrons/number_of_kpoints',data=[nkpt])
-      # !!!! hard-code
+      # !!!! hard-code restricted orbitals
       h5_handle.create_dataset('electrons/number_of_spins',data=[1])
-      h5_handle.create_dataset('electrons/psi_r_is_complex',data=[1])
     # end def create_electrons_group
 
     @staticmethod
