@@ -162,14 +162,14 @@ class InputXml:
 
         # build xml node
         charge_node = etree.Element('parameter',{'name':'charge'})
-        charge_node.text = str(atomic_number)
+        charge_node.text = str(valence_charge)
         valence_node = etree.Element('parameter',{'name':'valence'})
         valence_node.text = str(valence_charge)
         pos_node = etree.Element('attrib',{'name':'position','datatype':'posArray','condition':'0'}) # ? what is condition=0 ?
         pos_node.text = self.arr2text(pos_arr)
         grp_children = [charge_node,valence_node,pos_node]
 
-        grp_node = etree.Element('group',{'name':name,'size':natom})
+        grp_node = etree.Element('group',{'name':name,'size':str(natom)})
         for child in grp_children:
           grp_node.append(child)
         # end for
