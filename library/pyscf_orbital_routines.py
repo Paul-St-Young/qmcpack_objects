@@ -11,6 +11,7 @@ def ao_on_grid(cell):
 
 def mo_coeff_to_psig(mo_coeff,aoR,cell_gs,cell_vol,int_gvecs=None):
   """
+   !!!! assume mo_coeff are already sorted from lowest to highest energy
    Inputs:
      mo_coeff: molecular orbital in AO basis, each column is an MO, shape (nao,nmo)
      aoR: atomic orbitals on a real-space grid, each column is an AO, shape (ngrid,nao)
@@ -67,6 +68,11 @@ def save_eigensystem(mf,gvec_fname = 'gvectors.dat'
     ispin = 0 # restricted (same orbitals for up and down electrons)
     # get MOs in plane-wave basis
     aoR = ao_on_grid(mf.cell)
+    # sort MOs
+    idx = np.argsort(mf.mo_energy)
+    if not np.allclose(idx,np.arange(len(mf.mo_energy))):
+      raise NotImplementedError('mo_coeff is not sorted')
+    # end if
     gvecs,psig = mo_coeff_to_psig(mf.mo_coeff,aoR,mf.cell.gs,mf.cell.vol)
     nstate,npw,ncomp = psig.shape
     for istate in range(nstate):
@@ -76,10 +82,10 @@ def save_eigensystem(mf,gvec_fname = 'gvectors.dat'
     # end for istate
     eig_df = pd.DataFrame(data).set_index(
       ['ikpt','ispin','istate'],drop=True).sort_index()
-  # end if
-  if save:
-    eig_df.reset_index().to_json(eigsys_fname)
-    np.savetxt(gvec_fname,gvecs)
+    if save:
+      eig_df.reset_index().to_json(eigsys_fname)
+      np.savetxt(gvec_fname,gvecs)
+    # end if
   # end if
   return gvecs,eig_df
 # end def save_eigensystem
