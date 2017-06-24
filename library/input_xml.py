@@ -1,6 +1,7 @@
 #import xml.etree.ElementTree as etree
-import lxml.etree as etree
 import numpy as np
+from copy import deepcopy
+import lxml.etree as etree
 
 class InputXml:
 
@@ -184,6 +185,20 @@ class InputXml:
 
       return pset_node
     # end def particleset_from_hdf5
+
+    def ud_electrons(self,nup,ndown):
+      up_group = etree.Element('group',{'name':'u','size':str(nup),'mass':'1.0'})
+      dn_group = etree.Element('group',{'name':'d','size':str(ndown),'mass':'1.0'})
+      for egroup in [up_group,dn_group]:
+        charge_node = etree.Element('parameter',{'name':'charge'})
+        charge_node.text = '  -1  '
+        egroup.append( deepcopy(charge_node) )
+      # end for egroup
+
+      epset = etree.Element('particleset',{'name':'e','random':'yes'})
+      epset.append(up_group)
+      epset.append(dn_group)
+      return epset
     # ----------------
 
     # ----------------
