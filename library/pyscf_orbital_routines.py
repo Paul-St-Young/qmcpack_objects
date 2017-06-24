@@ -9,6 +9,16 @@ def ao_on_grid(cell):
   return aoR
 # end def ao_on_grid
 
+def get_pyscf_psir(mo_coeff,cell):
+    # get molecular orbital
+    aoR = ao_on_grid(cell)
+    rgrid_shape = np.array(cell.gs)*2+1 # shape of real-space grid
+    assert np.prod(rgrid_shape) == aoR.shape[0]
+
+    moR = np.dot(aoR,mo_coeff)
+    return moR.reshape(rgrid_shape)
+# end def get_pyscf_psir
+
 def mo_coeff_to_psig(mo_coeff,aoR,cell_gs,cell_vol,int_gvecs=None):
   """
    !!!! assume mo_coeff are already sorted from lowest to highest energy
