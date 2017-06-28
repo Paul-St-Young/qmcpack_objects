@@ -85,6 +85,19 @@ class InputXml:
         return self.find('.//particleset[@name="%s"]'%name)
     # end find_pset
 
+    def find_two_body_jastrow(self,speciesA,speciesB):
+      jas2 = self.find('.//jastrow[@type="Two-Body"]')
+      xexpression = './/correlation[@speciesA="%s" and @speciesB="%s"]' % (speciesA,speciesB)
+      results = jas2.xpath(xexpression)
+      if len(results) == 0:
+        return None
+      elif len(results) == 1:
+        return results[0]
+      else:
+        raise RuntimeError('conflicting definitions of Jastrow for '+speciesA+speciesB)
+      # end if
+    # end def find_two_body_jastrow
+
     # =======================================================================
     # Advance Methods i.e. specific to pyscf or QMCPACK 3.0
     # =======================================================================
@@ -202,7 +215,7 @@ class InputXml:
     # ----------------
 
     # ----------------
-    # numerics
+    # numerics - mirror the put() method of each class
     # grid
     def radial_function(self,node):
       assert node.tag=='radfunc'
@@ -223,6 +236,31 @@ class InputXml:
       entry = {'type':gtype,'units':units,'ri':ri,'rf':rf,'npts':npts,'rval':rval}
       return entry
     # end def radial_function
+
+    def bspline_functor(self,node):
+      assert node.tag=='correlation'
+
+      # read bspline knot definitions 
+      nsize = int(node.get('size'))
+      try:
+        rcut = float(node.get('rcut'))
+      except:
+        rcut = np.nan
+      # end try
+      try:
+        cusp = float(node.get('cusp'))
+      except:
+        cusp = np.nan
+      # end try
+
+      # read knots
+      coeff = node.find('.//coefficients')
+      param_name = coeff.get('id')
+      knots = np.array(coeff.text.split(),dtype=float)
+
+      entry = {'size':nsize,'rcut':rcut,'cusp':cusp,'id':param_name,'coeff':knots}
+      return entry
+   # end def bspline_function
     # ----------------
 
 # end class
