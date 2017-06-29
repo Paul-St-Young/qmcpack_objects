@@ -98,6 +98,22 @@ class InputXml:
       # end if
     # end def find_two_body_jastrow
 
+    def lattice_vectors(self):
+      sc_node  = self.find('.//simulationcell')
+      lat_node = sc_node.find('.//parameter[@name="lattice"]')
+      unit = lat_node.get('units')
+      assert unit == 'bohr'
+      axes = self.text2arr( lat_node.text )
+      return axes
+    # end def lattice_vectors
+
+    def atomic_coords(self,pset_name='ion0'):
+      source_pset_node = self.find_pset(pset_name)
+      pos_node = source_pset_node.find('.//attrib[@name="position"]')
+      pos = self.text2arr(pos_node.text)
+      return pos
+    # end def
+
     # =======================================================================
     # Advance Methods i.e. specific to pyscf or QMCPACK 3.0
     # =======================================================================
