@@ -108,6 +108,7 @@ class InputXml:
     # end def lattice_vectors
 
     def atomic_coords(self,pset_name='ion0'):
+      # !!!! assuming atomic units (bohr)
       source_pset_node = self.find_pset(pset_name)
       pos_node = source_pset_node.find('.//attrib[@name="position"]')
       pos = self.text2arr(pos_node.text)
