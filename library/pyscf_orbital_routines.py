@@ -6,7 +6,7 @@ def ao_on_grid(cell):
   from pyscf.pbc.dft import gen_grid,numint
   coords = gen_grid.gen_uniform_grids(cell)
   aoR    = numint.eval_ao(cell,coords)
-  return aoR
+  return aoR.astype(complex)
 # end def ao_on_grid
 
 def get_pyscf_psir(mo_coeff,cell):
