@@ -4,7 +4,11 @@ import numpy as np
 
 if __name__ == '__main__':
   
-  qmcpack_input = 'opt.xml'
+  import sys
+  if len(sys.argv)<2:
+    raise RuntimeError('please provide a QMCPACK input xml')
+  # end if
+  qmcpack_input = sys.argv[1]
   
   # extract crystal structure from QMCPACK input
   from input_xml import InputXml
@@ -28,6 +32,7 @@ if __name__ == '__main__':
   inv_axes = np.linalg.inv(axes)
   upos = np.dot(pos,inv_axes)
   assert np.allclose(ref_upos,upos)
+  print('fractional coordinates checks out.')
 
   # calculate distance table
   dtable = np.zeros([natom,natom],float)
@@ -48,5 +53,6 @@ if __name__ == '__main__':
     dtable[j,i] = min(dists)
   # end for (i,j)
   assert np.allclose(dtable,ref_dtable)
+  print('distance table checks out.')
 
 # end if __main__
