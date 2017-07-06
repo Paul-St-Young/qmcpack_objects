@@ -9,14 +9,21 @@ def ao_on_grid(cell):
   return aoR.astype(complex)
 # end def ao_on_grid
 
-def get_pyscf_psir(mo_coeff,cell):
-    # get molecular orbital
-    aoR = ao_on_grid(cell)
-    rgrid_shape = np.array(cell.gs)*2+1 # shape of real-space grid
-    assert np.prod(rgrid_shape) == aoR.shape[0]
+def get_pyscf_psir(mo_vec,cell):
+  """ 
+  Inputs:
+    mo_vec: 1D vector of AO coefficients representing a single MO
+    cell: pyscf.pbc.gto.Cell object, used to exact AO on grid
+  Output:
+    moR: MO on grid
+  """
+  # get molecular orbital
+  aoR = ao_on_grid(cell)
+  rgrid_shape = np.array(cell.gs)*2+1 # shape of real-space grid
+  assert np.prod(rgrid_shape) == aoR.shape[0]
 
-    moR = np.dot(aoR,mo_coeff)
-    return moR.reshape(rgrid_shape)
+  moR = np.dot(aoR,mo_vec)
+  return moR.reshape(rgrid_shape)
 # end def get_pyscf_psir
 
 def mo_coeff_to_psig(mo_coeff,aoR,cell_gs,cell_vol,int_gvecs=None):
@@ -153,11 +160,12 @@ def save_multideterminant_orbitals(detlist,nfill,mf):
   ikpt = 0
   ispin= 0
   aoR = ao_on_grid(mf.cell)
-  new_mo_coeff = multideterminant_coefficients(detlist,nfill,mf.mo_coeff)
+  new_mo_coeff = multideterminant_coefficients(detlist,nfill,mf.mo_coeff.astype(complex))
   norb = new_mo_coeff.shape[1]
   fake_mo_energy = np.arange(norb)
 
-  gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,mf.cell.gs,mf.cell.vol)
+  fft_normalization = 1.0 # mf.cell.vol # !!!! do NOT use cell volume to normalize FFT (for QMCPACK)
+  gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,mf.cell.gs,fft_normalization)
 
   # finish dataframe
   eig_df['ikpt']  = ikpt
