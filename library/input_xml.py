@@ -229,11 +229,25 @@ class InputXml:
       epset.append(up_group)
       epset.append(dn_group)
       return epset
+    # end def ud_electrons
     # ----------------
+
+    def group_positions(self,name):
+      node = self.find('.//group[@name="%s"]'%name)
+      pos_node = node.find('.//attrib[@name="position"]')
+      pos_text = pos_node.text
+      pos = self.text2arr(pos_text)
+
+      # check
+      nptcl = int( node.get('size') )
+      assert len(pos) == nptcl
+
+      return pos
+    # end def group_positions
 
     # ----------------
     # numerics - mirror the put() method of each class
-    # grid
+
     def radial_function(self,node):
       assert node.tag=='radfunc'
 
@@ -277,7 +291,7 @@ class InputXml:
 
       entry = {'size':nsize,'rcut':rcut,'cusp':cusp,'id':param_name,'coeff':knots}
       return entry
-   # end def bspline_function
+    # end def bspline_function
     # ----------------
 
 # end class
