@@ -189,7 +189,7 @@ def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,kpt,ikpt=0,ispin=0):
   fake_mo_energy = np.arange(norb)
 
   fft_normalization = 1.0 # cell.vol # !!!! do NOT use cell volume to normalize FFT (to match QMCPACK convention)
-  gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,mf.cell.gs,fft_normalization)
+  gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,cell.gs,fft_normalization)
 
   # finish dataframe
   eig_df['ikpt']  = ikpt
