@@ -181,7 +181,8 @@ def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,ikpt=0,ispin=0):
   ndet,nmo0,nmo1 = detlist.shape
 
   aoR = ao_on_grid(cell) # get AOs on real-space grid
-  new_mo_coeff = multideterminant_coefficients(detlist,nfill,mo_coeff.astype(complex))
+  new_mo_coeff = multideterminant_coefficients(detlist.reshape(ndet,nmo0*nmo1)
+    ,nfill,mo_coeff.astype(complex))
 
   # energies of the orbitals are use to sort the orbitals only
   norb = new_mo_coeff.shape[1]
