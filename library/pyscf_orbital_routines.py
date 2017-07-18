@@ -177,7 +177,7 @@ def save_multideterminant_orbitals(detlist,nfill,mf,ikpt=0,ispin=0):
   return gvecs,eig_df
 # end def save_multideterminant_orbitals
 
-def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,ikpt=0,ispin=0):
+def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,kpt,ikpt=0,ispin=0):
   ndet,nmo0,nmo1 = detlist.shape
 
   aoR = ao_on_grid(cell) # get AOs on real-space grid
@@ -194,8 +194,8 @@ def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,ikpt=0,ispin=0):
   # finish dataframe
   eig_df['ikpt']  = ikpt
   eig_df['ispin'] = ispin
-  kpt_data = np.zeros([len(eig_df),len(mf.kpt)])
-  kpt_data[:] = mf.kpt # copy kpt to every row of kpt_data
+  kpt_data = np.zeros([len(eig_df),len(kpt)])
+  kpt_data[:] = kpt # copy kpt to every row of kpt_data
   eig_df['reduced_k'] = kpt_data.tolist()
   eig_df.set_index(['ikpt','ispin','istate'],inplace=True,drop=True)
   eig_df.sort_index()
