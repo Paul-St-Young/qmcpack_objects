@@ -242,7 +242,7 @@ class PwscfH5:
       # write species info
       species  = np.unique(elem)
       h5_handle.create_dataset('atoms/number_of_species',data=[len(species)])
-      atomic_number = {'H':1,'He':2,'Li':3,'Be':4,'B':5,'C':6}
+      atomic_number = {'H':1,'He':2,'Li':3,'Be':4,'B':5,'C':6,'N':7,'O':8,'Mn':25}
       number_of_electrons = {}
       species_map = {}
       for ispec,name in enumerate(species):
