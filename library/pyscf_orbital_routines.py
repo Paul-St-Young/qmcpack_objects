@@ -156,21 +156,19 @@ def multideterminant_coefficients(detlist,nfill,mo_coeff):
   return new_mo_coeff
 # end def multideterminant_coefficients
 
-def save_multideterminant_orbitals(detlist,nfill,mf):
-  ikpt = 0
-  ispin= 0
+def save_multideterminant_orbitals(detlist,nfill,mf,ikpt=0,ispin=0):
+  # !!!! obsolte, use multideterminant_orbitals instead
   aoR = ao_on_grid(mf.cell)
   new_mo_coeff = multideterminant_coefficients(detlist,nfill,mf.mo_coeff.astype(complex))
   norb = new_mo_coeff.shape[1]
   fake_mo_energy = np.arange(norb)
 
-  fft_normalization = 1.0 # mf.cell.vol # !!!! do NOT use cell volume to normalize FFT (for QMCPACK)
+  fft_normalization = 1.0 # mf.cell.vol # !!!! do NOT use cell volume to normalize FFT (to match QMCPACK convention)
   gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,mf.cell.gs,fft_normalization)
 
   # finish dataframe
   eig_df['ikpt']  = ikpt
   eig_df['ispin'] = ispin
-  eig_df.to_json('test.json')
   kpt_data = np.zeros([len(eig_df),len(mf.kpt)])
   kpt_data[:] = mf.kpt # copy kpt to every row of kpt_data
   eig_df['reduced_k'] = kpt_data.tolist()
@@ -178,6 +176,30 @@ def save_multideterminant_orbitals(detlist,nfill,mf):
   eig_df.sort_index()
   return gvecs,eig_df
 # end def save_multideterminant_orbitals
+
+def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,ikpt=0,ispin=0):
+  ndet,nmo0,nmo1 = detlist.shape
+
+  aoR = ao_on_grid(cell) # get AOs on real-space grid
+  new_mo_coeff = multideterminant_coefficients(detlist,nfill,mo_coeff.astype(complex))
+
+  # energies of the orbitals are use to sort the orbitals only
+  norb = new_mo_coeff.shape[1]
+  fake_mo_energy = np.arange(norb)
+
+  fft_normalization = 1.0 # cell.vol # !!!! do NOT use cell volume to normalize FFT (to match QMCPACK convention)
+  gvecs,eig_df = mo_orbitals(fake_mo_energy,new_mo_coeff,aoR,mf.cell.gs,fft_normalization)
+
+  # finish dataframe
+  eig_df['ikpt']  = ikpt
+  eig_df['ispin'] = ispin
+  kpt_data = np.zeros([len(eig_df),len(mf.kpt)])
+  kpt_data[:] = mf.kpt # copy kpt to every row of kpt_data
+  eig_df['reduced_k'] = kpt_data.tolist()
+  eig_df.set_index(['ikpt','ispin','istate'],inplace=True,drop=True)
+  eig_df.sort_index()
+  return gvecs,eig_df
+# end def multideterminant_orbitals
 
 def generate_pwscf_h5(cell,gvecs,eig_df,pseudized_charge=None,h5_fname='pyscf2pwscf.h5'):
   

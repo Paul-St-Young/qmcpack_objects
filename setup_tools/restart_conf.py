@@ -44,6 +44,7 @@ def restart_conf_in_input(fconf,finp,fnew='next.xml',iconf=0):
   # write electron positions into input
   iptcl = 0
   epset = inp.find_pset('e')
+  epset.set('random','no')
   for group in epset.findall('group'): # should be ['u','d']
     nsize = int( group.get('size') )
     mypos = pos[iptcl:iptcl+nsize,:]
