@@ -6,7 +6,8 @@ import lxml.etree as etree
 class InputXml:
 
     def __init__(self):
-        pass
+      # some things everyone should know
+      self.atomic_number = {'H':1,'He':2,'Li':3,'Be':4,'B':5,'C':6,'N':7,'O':8,'Mn':25}
     # end def
 
     # =======================================================================
@@ -32,7 +33,7 @@ class InputXml:
     def find(self,xpath): 
         return self.root.find(xpath)
     # end def
-    def find_all(self,xpath): 
+    def findall(self,xpath): 
         return self.root.findall(xpath)
     # end def
 
@@ -154,6 +155,7 @@ class InputXml:
       sc_node.append(lr_node)
       return sc_node
     # end def simulationcell_from_cell
+    # end simulationcell
     # ----------------
       
     # ----------------
@@ -230,7 +232,6 @@ class InputXml:
       epset.append(dn_group)
       return epset
     # end def ud_electrons
-    # ----------------
 
     def group_positions(self,name):
       node = self.find('.//group[@name="%s"]'%name)
@@ -244,6 +245,72 @@ class InputXml:
 
       return pos
     # end def group_positions
+    # end particleset
+    # ----------------
+
+    # ----------------
+    # hamiltonian
+
+    # end hamiltonian
+    # ----------------
+
+    # ----------------
+    # wavefunction
+
+    def rhf_slater(self,wf_h5_fname,norb,basis_type='whatever_spline',tilematrix='1 0 0 0 1 0 0 0 1',twistnum='0',source='ion0'
+      ,meshfactor='1.0'   # set size of FFT grid, can be overwritten using fftgrid
+      ,fftgrid=None       # manually set FFT grid shape, overwrites meshfactor, e.g. '16 16 16'
+      ,precision='double' # use double precision for wavefunction evaluation
+      ,truncate='no'      # 'no': do not truncate basis function for slab or open geometries
+    ):
+      """ write <sposet_builder> and <determinantset> into a <wavefunction> node
+      Inputs:
+        wf_h5_fname: str, location of hdf5 wavefunction file relative to QMCPACK run folder - file not read
+        norb: int, number of orbitals
+      Outputs:
+        wf_node: etree.Element, <wavefunction> node
+        **obsolete**sposet_builder_node: etree.Element, <sposet_builder> node
+        **obsolete**determinantset_node: etree.Element, <determinantset> node
+      """
+
+      wf_node = etree.Element('wavefunction')
+      sposet_builder_node = etree.Element('sposet_builder')
+      determinantset_node = etree.Element('determinantset')
+      slater_node = etree.Element('slaterdeterminant')
+      determinantset_node.append(slater_node)
+
+      wf_node.append(sposet_builder_node)
+      wf_node.append(determinantset_node)
+
+      # write <sposet_builder>
+      spo_name = 'spo-ud' # !!!! hard code sposet name
+      ispin    = 0        # !!!! hard code to use spindataset="0" for RHF
+      name_val_pairs = zip(
+        ['type','href','tilematrix','twistnum','source','meshfactor','precision','truncate'],
+        [basis_type,wf_h5_fname,tilematrix,twistnum,source,meshfactor,precision,truncate]
+      )
+      for name,val in name_val_pairs:
+        sposet_builder_node.set(name,val)
+      # end for name
+
+      if fftgrid is not None:
+        sposet_builder_node.set('fftgrid',fftgrid)
+      # end if
+
+      spo_node = etree.Element('sposet',{'type':'bspline','name':spo_name,'size':str(norb),'spindataset':str(ispin)})
+      sposet_builder_node.append(spo_node)
+
+      # write <determinantset>, probably better to reference <particleset>
+      for name,group in zip(['updet','downdet'],['u','d']):
+        det_node = etree.Element('determinant',{'id':name,'group':group,'size':str(norb)})
+        slater_node.append(det_node)
+      # end for
+
+      return wf_node
+    # end def rhf_slater
+
+    # end wavefunction
+    # ----------------
 
     # ----------------
     # numerics - mirror the put() method of each class
