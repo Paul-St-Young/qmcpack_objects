@@ -257,7 +257,8 @@ class InputXml:
     # ----------------
     # wavefunction
 
-    def rhf_slater(self,wf_h5_fname,norb,basis_type='whatever_spline',tilematrix='1 0 0 0 1 0 0 0 1',twistnum='0',source='ion0'
+    def rhf_slater(self,wf_h5_fname,norb
+      ,basis_type='whatever_spline',tilematrix='1 0 0 0 1 0 0 0 1',twistnum='0',source='ion0'
       ,meshfactor='1.0'   # set size of FFT grid, can be overwritten using fftgrid
       ,fftgrid=None       # manually set FFT grid shape, overwrites meshfactor, e.g. '16 16 16'
       ,precision='double' # use double precision for wavefunction evaluation
@@ -302,12 +303,65 @@ class InputXml:
 
       # write <determinantset>, probably better to reference <particleset>
       for name,group in zip(['updet','downdet'],['u','d']):
-        det_node = etree.Element('determinant',{'id':name,'group':group,'size':str(norb)})
+        det_node = etree.Element('determinant',{'id':name,'group':group,'size':str(norb),'sposet':spo_name})
         slater_node.append(det_node)
       # end for
 
       return wf_node
     # end def rhf_slater
+
+    def uhf_slater(self,wf_h5_fname,nptcl_map,spo_name_map={'u':'spo_up','d':'spo_dn'},spindataset_map={'u':0,'d':1}
+      ,basis_type='whatever_spline',tilematrix='1 0 0 0 1 0 0 0 1',twistnum='0',source='ion0'
+      ,meshfactor='1.0'   # set size of FFT grid, can be overwritten using fftgrid
+      ,fftgrid=None       # manually set FFT grid shape, overwrites meshfactor, e.g. '16 16 16'
+      ,precision='double' # use double precision for wavefunction evaluation
+      ,truncate='no'      # 'no': do not truncate basis function for slab or open geometries
+    ):
+      """ write UHF wavefunction
+      Input:
+        wf_h5_fname: same as rhf_slater
+        nptcl_map: a dictionary from str to int, map species name to of particles of that species
+        spo_name_map: a dictionary from str to int, map species name to sposet name
+        spindataset_map: a dictionary from str to int, map species name to spindataset index
+      Output:
+        wf_node: same as rhf_slater
+      """
+      assert len(nptcl_map) == len(spo_name_map)
+      assert len(nptcl_map) == len(spindataset_map)
+      from copy import deepcopy
+      nptcl_dummy = 0
+      wf_node = self.rhf_slater(wf_h5_fname,nptcl_dummy,basis_type,tilematrix,twistnum,source,meshfactor,fftgrid,precision,truncate)
+
+      # get <sposet> node and empty out <sposet_builder>
+      sposet_builder_node = wf_node.find('./sposet_builder')
+      sposet_node = sposet_builder_node.find('./sposet')
+      sposet_builder_node.remove(sposet_node)
+
+      # rebuild <sposet_builder>
+      for group in nptcl_map.keys():
+        name  = spo_name_map[group]
+        nptcl = nptcl_map[group]
+        spindataset = spindataset_map[group]
+
+        mysposet_node = deepcopy(sposet_node)
+        mysposet_node.set('name',name)
+        mysposet_node.set('spindataset',str(spindataset))
+        mysposet_node.set('size',str(nptcl))
+        sposet_builder_node.append(mysposet_node)
+      # end for
+
+      # re-link determinants
+      for det_node in wf_node.findall('./determiant'):
+        group = det_node.get('group')
+        name  = spo_name_map[group]
+        nptcl = nptcl_map[group]
+
+        det_node.set('size',nptcl)
+        det_node.set('sposet',name)
+      # end for
+
+      return wf_node
+    # end def uhf_slater
 
     # end wavefunction
     # ----------------
