@@ -419,7 +419,8 @@ class InputXml:
        
       loop_node = etree.Element('loop',{'max':str(nloop)})
       nwalker = 1 # !!!! hard code one walker per MPI group, only 'samples' matter
-      vmc_node = self.get_qmc_node(nwalker,method=method,checkpoint=checkpoint)
+      vmc_node = self.get_qmc_node(nwalker,method=method,checkpoint=checkpoint
+        ,param_name_val_map = param_name_val_map)
       loop_node.append(vmc_node)
 
       for cname,cval in zip(['energy','unreweightedvariance','reweightedvariance'],[e_weight,urv_weight,rv_weight]):
