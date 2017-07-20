@@ -211,8 +211,7 @@ class PwscfH5:
       # transfer orbital info
       h5_handle.create_dataset('electrons/number_of_electrons',data=nelec)
       h5_handle.create_dataset('electrons/number_of_kpoints',data=[nkpt])
-      # !!!! hard-code restricted orbitals
-      h5_handle.create_dataset('electrons/number_of_spins',data=[1])
+      h5_handle.create_dataset('electrons/number_of_spins',data=[nspin])
     # end def create_electrons_group
 
     @staticmethod
