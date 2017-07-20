@@ -367,6 +367,74 @@ class InputXml:
     # ----------------
 
     # ----------------
+    # qmc driver
+
+    def get_qmc_node(self,walkers,method='vmc',move='pbyp',checkpoint=0
+      ,param_name_val_map = {
+        'substeps':1,
+        'steps':10,
+        'timestep':1.0,
+        'warmupsteps':10,
+        'blocks':100,
+        'usedrift':'yes'
+       }):
+      """ write optimization inputs
+      Inputs:
+        nsample: int, number of VMC samples used to calculate the hamiltonain and overlap matrices
+        nloop: int, number of outer loops 
+      Output:
+        loop_node: etree.Element, <loop> node 
+      """
+      param_name_val_map.update({'walkers':walkers})
+
+      # build <qmc> node
+      vmc_node  = etree.Element('qmc',{'method':method,'move':move,'checkpoint':str(checkpoint)})
+      for name,val in param_name_val_map.iteritems():
+        param_node = etree.Element('parameter',{'name':name})
+        param_node.text = str(val)
+        vmc_node.append(param_node)
+      # end for
+      return vmc_node
+
+    # end def get_qmc_node
+
+    def get_optimization_node(self,nloop,method='linear',checkpoint=-1
+      ,e_weight=0.95,urv_weight=0.0,rv_weight=0.05
+      ,param_name_val_map = {
+        'samples':16384,
+        'substeps':10,
+        'steps':1,
+        'timestep':1.0,
+        'warmupsteps':10,
+        'blocks':100,
+        'usedrift':'yes'
+       }):
+      """ write optimization inputs
+      Inputs:
+        nsample: int, number of VMC samples used to calculate the hamiltonain and overlap matrices
+        nloop: int, number of outer loops 
+      Output:
+        loop_node: etree.Element, <loop> node
+      """
+       
+      loop_node = etree.Element('loop',{'max':str(nloop)})
+      nwalker = 1 # !!!! hard code one walker per MPI group, only 'samples' matter
+      vmc_node = self.get_qmc_node(nwalker,method=method,checkpoint=checkpoint)
+      loop_node.append(vmc_node)
+
+      for cname,cval in zip(['energy','unreweightedvariance','reweightedvariance'],[e_weight,urv_weight,rv_weight]):
+        cost_node = etree.Element('cost',{'name':cname})
+        cost_node.text = str(cval)
+        vmc_node.append(cost_node)
+      # end for
+
+      return loop_node
+    # end def optimization
+
+    # end qmc driver
+    # ----------------
+
+    # ----------------
     # numerics - mirror the put() method of each class
 
     def radial_function(self,node):
