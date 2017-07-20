@@ -388,13 +388,13 @@ class InputXml:
       param_name_val_map.update({'walkers':walkers})
 
       # build <qmc> node
-      vmc_node  = etree.Element('qmc',{'method':method,'move':move,'checkpoint':str(checkpoint)})
+      qmc_node  = etree.Element('qmc',{'method':method,'move':move,'checkpoint':str(checkpoint)})
       for name,val in param_name_val_map.iteritems():
         param_node = etree.Element('parameter',{'name':name})
         param_node.text = str(val)
-        vmc_node.append(param_node)
+        qmc_node.append(param_node)
       # end for
-      return vmc_node
+      return qmc_node
 
     # end def get_qmc_node
 
@@ -429,7 +429,41 @@ class InputXml:
       # end for
 
       return loop_node
-    # end def optimization
+    # end def get_optimization_node
+
+    def get_dmc_nodes(self,target_walkers,time_step_list=[0.02,0.01]
+      ,correlation_time = 1.0
+      ,param_name_val_map = {
+        'substeps':1,
+        'steps':10,
+        'timestep':1.0,
+        'warmupsteps':10,
+        'blocks':100,
+        'usedrift':'yes'
+       }):
+
+      vmc_nv_map = param_name_val_map.copy()
+      vmc_nv_map.update({'samples':target_walkers})
+      vmc_node = self.get_qmc_node(1,param_name_val_map=vmc_nv_map)
+
+      nodes = [vmc_node] # use a VMC to get initial walkers
+      for ts in time_step_list:
+        dmc_nv_map = param_name_val_map.copy()
+
+        steps = int(round( float(correlation_time)/ts ))
+        if steps < 1:
+          raise RuntimeError('decrease time step or increase correlation_time')
+        # end if
+        dmc_nv_map['timestep'] = str(ts)
+        dmc_nv_map['steps'] = str(steps)
+
+        dmc_nv_map.update({'targetwalkers':target_walkers})
+        dmc_node = self.get_qmc_node(1,method='dmc',param_name_val_map=dmc_nv_map)
+        nodes.append(dmc_node)
+      # end for ts
+
+      return nodes
+    # end get_dmc_node
 
     # end qmc driver
     # ----------------
