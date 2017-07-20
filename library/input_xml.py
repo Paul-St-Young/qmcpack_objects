@@ -284,7 +284,7 @@ class InputXml:
       wf_node.append(determinantset_node)
 
       # write <sposet_builder>
-      spo_name = 'spo-ud' # !!!! hard code sposet name
+      spo_name = 'spo_ud' # !!!! hard code sposet name
       ispin    = 0        # !!!! hard code to use spindataset="0" for RHF
       name_val_pairs = zip(
         ['type','href','tilematrix','twistnum','source','meshfactor','precision','truncate'],
@@ -351,12 +351,16 @@ class InputXml:
       # end for
 
       # re-link determinants
-      for det_node in wf_node.findall('./determiant'):
+      det_nodes =  wf_node.findall('.//determinant')
+      if len(det_nodes) == 0:
+        raise RuntimeError('found no determinant')
+      # end if
+      for det_node in det_nodes:
         group = det_node.get('group')
         name  = spo_name_map[group]
         nptcl = nptcl_map[group]
 
-        det_node.set('size',nptcl)
+        det_node.set('size',str(nptcl))
         det_node.set('sposet',name)
       # end for
 
