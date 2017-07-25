@@ -250,13 +250,41 @@ class InputXml:
 
     # ----------------
     # hamiltonian
+    def hamiltonian_interactions(self,epset_name,ipset_name,pseudos=None):
 
+      ion_pset_name = ion_pset_node.get('name')
+      elec_pset_name= elec_pset_node.get('name')
+
+      ii_node = etree.Element('constant',{'type':'coulomb','name':'IonIon'
+        ,'source':ipset_name,'target':ion_pset_name})
+      ee_node = etree.Element('pairpot',{'type':'coulomb','name':'ElecElec'
+        ,'source':epset_name,'target':epset_name})
+      if pseudos is None:
+        ei_node = etree.Element('pairpot',{'type':'coulomb','name':'ElecIon'
+          ,'source':ipset_name,'target':epset_name})
+      else:
+        ei_node = etree.Element('pairpot',{'type':'pseudo','name':'PseudoPot'
+          ,'source':ipset_name,'target':epset_name
+          ,'wavefunction':'psi0','format':'xml'})
+        for elem,psp in pseudos.iteritems():
+          pseudo_node = etree.Element('pseudo',
+            {'elementType':elem,'href':psp})
+          ei_node.append(pseudo_node)
+        # end for
+      # end if
+
+      ham_children = [ii_node,ee_node,ei_node]
+      ham_node = etree.Element('hamiltonian'
+        ,{'name':'h0','type':'generic','target':epset_name})
+      for child in ham_children:
+        ham_node.append(child)
+      # end for
+      return ham_node
     # end hamiltonian
     # ----------------
 
     # ----------------
     # wavefunction
-
     def rhf_slater(self,wf_h5_fname,norb
       ,basis_type='whatever_spline',tilematrix='1 0 0 0 1 0 0 0 1',twistnum='0',source='ion0'
       ,meshfactor='1.0'   # set size of FFT grid, can be overwritten using fftgrid
@@ -366,6 +394,53 @@ class InputXml:
 
       return wf_node
     # end def uhf_slater
+
+    # for multideterminant
+    def occupy(istart,nfill,ntot):
+      """ return strings like 11110000, 00001111, which represent occupation of single-particle states
+      Inputs:
+        istart: int, index of first filled orbital
+        nfill: int, number of filled orbitals
+        ntot: int, total number of orbitals in sposet
+      Output:
+        text: str, e.g. occupy(0,4,8) -> '11110000'
+      """
+      occ_arr = ['0'] * ntot
+      occ_arr[istart:(istart+nfill)] = ['1'] * nfill
+      text = ''.join(occ_arr)
+      return text
+    # end def occupy
+    
+    def multideterminant_from_ci(ci_coeff,nfill,nstate
+      ,spo_up='spo_up',spo_dn='spo_dn'
+      ,cutoff=1e-16,real_coeff=False):
+      """ construct the <multideterminant> xml node from an array of CI coefficients
+      Inputs:
+        ci_coeff: list of float/complex, determinant expansion coefficients
+        nfill: int, number of filled orbitals in each determinant 
+        nstate: int, total number of orbitals in sposet
+      Output:
+        node: lxml.etree.Element, <multideterminant> node
+      """
+      ndet = len(ci_coeff)
+      node = etree.Element('multideterminant',{'optimize':'no','spo_up':spo_up,'spo_dn':spo_dn})
+      detlist = etree.Element('detlist',{'size':str(ndet),'type':'DETS'
+        ,'nca':'0','ncb':'0','nea':str(nfill),'neb':str(nfill)
+        ,'cutoff':str(cutoff),'nstates':str(nstate)})
+      node.append(detlist)
+      for idet in range(ndet):
+        if real_coeff:
+          coeff_text = '%f' % ci_coeff[idet]
+        else:
+          coeff_text = '(%f,%f)' % (ci_coeff[idet].real,ci_coeff[idet].imag)
+        # end if
+        alpha = occupy(idet*nfill,nfill,nstate)
+        beta = occupy(idet*nfill,nfill,nstate)
+        det = etree.Element('ci',{'id':'CIcoeff_%d'%idet,'coeff':coeff_text,'alpha':alpha,'beta':beta})
+        detlist.append(det)
+      # end for idet
+      return node
+    # end def multideterminant_from_ci
 
     # end wavefunction
     # ----------------
