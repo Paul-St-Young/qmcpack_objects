@@ -227,3 +227,15 @@ def generate_pwscf_h5(cell,gvecs,eig_df,pseudized_charge=None,h5_fname='pyscf2pw
   new.create_dataset('version',data=[2,1,0])
   new.close()
 # end def generate_pwscf_h5
+
+def atom_text(elem,pos):
+  """ convert elem,pos to text representation """
+  assert len(elem) == len(pos)
+  lines = []
+  for iatom in range(len(elem)):
+      mypos = pos[iatom]
+      line = '%5s  %10.6f  %10.6f  %10.6f' % (elem[iatom],mypos[0],mypos[1],mypos[2])
+      lines.append(line)
+  atext = ';\n'.join(lines)
+  return atext
+# end def atom_text
