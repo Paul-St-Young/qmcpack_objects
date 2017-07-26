@@ -63,7 +63,6 @@ def read_next_det(mm,prefix='Determinant',max_nao=1024):
     Effect:
       mm will point to the end of the parsed determinant
     """
-
     idx = mm.find(prefix)
     if idx == -1:
       return -1
@@ -95,7 +94,7 @@ def read_next_det(mm,prefix='Determinant',max_nao=1024):
       # emd if
     # end for i
 
-    return det_idx, np.array(det_data,dtype=complex)
+    return det_idx,np.array(det_data,dtype=complex)
 # end def read_next_det
 
 def parse_determinants(fname,nmo):
@@ -120,7 +119,7 @@ def parse_determinants(fname,nmo):
     nspin = 2
   # end if uhf
 
-  det_list = np.zeros([ndet,nmo,nmo,nspin],dtype=complex)
+  det_list = np.zeros([ndet,nmo*nmo*nspin],dtype=complex)
   for idet in range(ndet):
     det_idx, mat_vec = read_next_det(mm)
     my_nmo_sq = len(mat_vec)
@@ -134,8 +133,86 @@ def parse_determinants(fname,nmo):
 
     my_det = mat_vec.reshape(nmo,nmo,nspin,order='F') # phfmol outputs in column major, checked in read_header
     # spin index seems to be the last index, see find_uhf_index
-    det_list[idet,:,:,:] = my_det.copy()
+    det_list[idet,:] = my_det.flatten()
   # end for
 
   return det_list
 # end def parse_determinants
+
+def read_phfrun_det_part(mm,mo_header_idx,nbas,real_or_imag):
+  """ read either the real or the complex part of the determinant printed in phfrun.out
+  Inputs: 
+    mm: mmap of phfrun.out
+    mo_header_idx: memory index of the beginning of ther determinant
+    nbas: number of basis functions, which determines the shape of the determinant (nbas,nbas)
+    real_or_imag: must be either 'real' or 'imag' 
+  Outputs: 
+    idet: index of the determinant read from the mo_header line
+    mydet: either the real or the imaginary part of the determinant 
+  """
+
+  if (real_or_imag != 'real') and (real_or_imag != 'imag'):
+    raise InputError('real_or_imag must be one of "real" or "imag"')
+  # end if
+
+  mydet = np.zeros([nbas,nbas])
+
+  mm.seek(mo_header_idx)
+  mo_header = mm.readline()
+  ridx = mo_header.index(real_or_imag)
+  assert mo_header[ridx:ridx+len(real_or_imag)] == real_or_imag
+
+  col_line = mm.readline()
+  col_idx  = np.array(col_line.split(),dtype=int) -1 # -1 to start index at 0
+
+  nblock = int( np.ceil(nbas/len(col_idx)) )
+  ncol_left = nbas - nblock*len(col_idx)
+  if ncol_left > 0:
+    nblock += 1
+  # end if
+  first_block = True
+  for iblock in range(nblock):
+    if first_block: # already read col_idx
+      first_block = False
+    else:
+      col_line = mm.readline()
+      col_idx = np.array(col_line.split(),dtype=int) -1 # -1 to start index at 0
+    # end if
+    for ibas in range(nbas):
+      row_line   = mm.readline()
+      row_tokens = row_line.split()
+      irow = int(row_tokens[0]) -1 # -1 to start index at 0
+      row = np.array(row_tokens[1:],dtype=float)
+      mydet[irow,col_idx] = row.copy()
+    # end ibas
+  # end iblock
+
+  return mydet
+# end def read_phfrun_det_part
+
+def all_idx_with_label(mm,label,max_ndet=8192):
+  mm.seek(0)
+  idx_list   = np.zeros(max_ndet,dtype=int)
+  for idet in range(max_ndet):
+    new_header_idx = mm.find(label)
+    idx_list[idet] = new_header_idx
+    if new_header_idx == -1:
+      break
+    elif idet == max_ndet-1:
+      raise RuntimeError('increase max_ndet')
+    # end if
+    header_idx = new_header_idx
+    mm.seek(header_idx)
+    mm.readline()
+  # end for idet
+  return idx_list
+# end def all_idx_with_label
+
+def read_phfrun_det(mm,prefix,nbas):
+  idx_list = all_idx_with_label(mm,prefix)
+  last_pos = np.where(idx_list==-1)[0][0]
+  det_real = read_phfrun_det_part(mm,idx_list[last_pos-2],nbas,'real')
+  det_imag = read_phfrun_det_part(mm,idx_list[last_pos-1],nbas,'imag')
+  det = det_real + 1j*det_imag
+  return det
+# end def read_phfrun_det
