@@ -165,11 +165,7 @@ def read_phfrun_det_part(mm,mo_header_idx,nbas,real_or_imag):
   col_line = mm.readline()
   col_idx  = np.array(col_line.split(),dtype=int) -1 # -1 to start index at 0
 
-  nblock = int( np.ceil(nbas/len(col_idx)) )
-  ncol_left = nbas - nblock*len(col_idx)
-  if ncol_left > 0:
-    nblock += 1
-  # end if
+  nblock = int( np.ceil(float(nbas)/len(col_idx)) )
   first_block = True
   for iblock in range(nblock):
     if first_block: # already read col_idx
@@ -186,6 +182,15 @@ def read_phfrun_det_part(mm,mo_header_idx,nbas,real_or_imag):
       mydet[irow,col_idx] = row.copy()
     # end ibas
   # end iblock
+
+  # check determinant for empty columns
+  for icol in range(nbas):
+    col  = mydet[:,icol]
+    zvec = np.zeros(nbas)
+    if np.allclose(col,zvec): # thank your past self if you get here
+      raise RuntimeError('dev. error: empty column detected, either nbas or nblock is incorrect')
+    # end if
+  # end for 
 
   return mydet
 # end def read_phfrun_det_part
