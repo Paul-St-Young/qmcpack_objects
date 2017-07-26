@@ -252,11 +252,8 @@ class InputXml:
     # hamiltonian
     def hamiltonian_interactions(self,epset_name,ipset_name,pseudos=None):
 
-      ion_pset_name = ion_pset_node.get('name')
-      elec_pset_name= elec_pset_node.get('name')
-
       ii_node = etree.Element('constant',{'type':'coulomb','name':'IonIon'
-        ,'source':ipset_name,'target':ion_pset_name})
+        ,'source':ipset_name,'target':ipset_name})
       ee_node = etree.Element('pairpot',{'type':'coulomb','name':'ElecElec'
         ,'source':epset_name,'target':epset_name})
       if pseudos is None:
@@ -396,7 +393,7 @@ class InputXml:
     # end def uhf_slater
 
     # for multideterminant
-    def occupy(istart,nfill,ntot):
+    def occupy_str(self,istart,nfill,ntot):
       """ return strings like 11110000, 00001111, which represent occupation of single-particle states
       Inputs:
         istart: int, index of first filled orbital
@@ -409,9 +406,9 @@ class InputXml:
       occ_arr[istart:(istart+nfill)] = ['1'] * nfill
       text = ''.join(occ_arr)
       return text
-    # end def occupy
+    # end def occupy_str
     
-    def multideterminant_from_ci(ci_coeff,nfill,nstate
+    def multideterminant_from_ci(self,ci_coeff,nfill,nstate
       ,spo_up='spo_up',spo_dn='spo_dn'
       ,cutoff=1e-16,real_coeff=False):
       """ construct the <multideterminant> xml node from an array of CI coefficients
@@ -434,13 +431,44 @@ class InputXml:
         else:
           coeff_text = '(%f,%f)' % (ci_coeff[idet].real,ci_coeff[idet].imag)
         # end if
-        alpha = occupy(idet*nfill,nfill,nstate)
-        beta = occupy(idet*nfill,nfill,nstate)
+        alpha = self.occupy_str(idet*nfill,nfill,nstate)
+        beta = self.occupy_str(idet*nfill,nfill,nstate)
         det = etree.Element('ci',{'id':'CIcoeff_%d'%idet,'coeff':coeff_text,'alpha':alpha,'beta':beta})
         detlist.append(det)
       # end for idet
       return node
     # end def multideterminant_from_ci
+
+    def one_body_jastrow(self,ipset_node):
+      ion_pset_name = ipset_node.get('name')
+      jas_node  = etree.Element('jastrow',{'type':'One-Body','name':'J1','function':'bspline','source':ion_pset_name})
+      for group in ipset_node.findall('group'):
+        ion_name = group.get('name')
+        corr_node = self.bspline_functor_from_dict()
+        corr_node.set('elementType',ion_name)
+        coeff_node = corr_node.find('.//coefficients')
+        coeff_node.set('id','e%s'%ion_name)
+        jas_node.append(corr_node)
+      # end for
+      return jas_node
+    # end def one_body_jastrow
+
+    def two_body_jastrow(self,epset_node):
+      jas_node = etree.Element('jastrow',{'type':'Two-Body','name':'J2','function':'bspline'})
+      species_names = [group.get('name') for group in epset_node.findall('.//group')]
+      assert species_names == ['u','d'] # !!!! hard code for up and down electrons for now
+      spec1 = 'u'
+      for spec2 in ['u','d']:
+        corr_node = self.bspline_functor_from_dict()
+        corr_node.set('speciesA',spec1)
+        corr_node.set('speciesB',spec2)
+        coeff_node = corr_node.find('.//coefficients')
+        coeff_node.set('id',spec1+spec2)
+        jas_node.append(corr_node)
+      # end for
+      return jas_node
+    # end def two_body_jastrow
+
 
     # end wavefunction
     # ----------------
@@ -595,7 +623,94 @@ class InputXml:
 
       entry = {'size':nsize,'rcut':rcut,'cusp':cusp,'id':param_name,'coeff':knots}
       return entry
-    # end def bspline_function
+    # end def bspline_functor
+
+    def bspline_functor_from_dict(self,entry={
+        'size':8,
+        'rcut':None,
+        'cusp':0.0,
+        'id':'coeff',
+        'optimize':'yes',
+        'coeff':np.array([0,0,0,0,0,0,0,0])
+        }):
+      """ create <correlation> node readable by BsplineFunctor from a dictionary
+      Input:
+        entry: dict, must have ['size','rcut','cusp','id','optimize']
+      Output:
+        node: etree.Element, <correlation>
+      """
+      node = etree.Element('correlation')
+      for key in ['size','rcut','cusp']:
+        val = entry[key]
+        if val is not None:
+          node.set(key,str(val))
+        # end if
+      # end for
+
+      coeff = etree.Element('coefficients')
+      for key in ['id','optimize']:
+        val = entry[key]
+        if val is not None:
+          coeff.set(key,str(val))
+        # end if
+      # end for
+      coeff.set('type','Array')
+      coeff.text = self.arr2text(entry['coeff'])
+      node.append(coeff)
+
+      return node
+    # end def bspline_functor_from_dict
+
     # ----------------
+    
+    def write_qmcpack_input(self,inp_name,cell,wf_h5_fname,nup,ndn,wf_node=None,pseudos=None,qmc_nodes=[],proj_id='qmc'):
+      import h5py
+      from lxml import etree
+    
+      # build <project>
+      proj_node = etree.Element('project',{'id':proj_id,'series':'0'})
+    
+      # build <simulationcell>
+      sc_node   = self.simulationcell_from_cell(cell)
+    
+      # build <particleset>
+      elec_pset_node= self.ud_electrons(nup,ndn)
+      fp = h5py.File(wf_h5_fname)
+      ion_pset_node = self.particleset_from_hdf5(fp)
+    
+      # build <wavefunction>
+      #  in another file
+    
+      # build <hamiltonian>
+      ion_pset_name = ion_pset_node.get('name')
+      elec_pset_name= elec_pset_node.get('name')
+      ham_node = self.hamiltonian_interactions(elec_pset_name,ion_pset_name,pseudos=pseudos)
+    
+      # assemble <qmcsystem>
+      sys_node = etree.Element('qmcsystem')
+      sys_children = [proj_node,sc_node,elec_pset_node,ion_pset_node,ham_node]
+    
+      for child in sys_children:
+        # if give, insert <wavefunction> before <hamiltonian> 
+        if (child.tag == 'hamiltonian') and (wf_node is not None):
+          sys_node.append(wf_node)
+        # end if
+        sys_node.append(child)
+      # end for
+    
+      # write input
+      root = etree.Element('simulation')
+      doc = etree.ElementTree(root)
+      root.append(sys_node)
+    
+      # take <qmc> block from else where
+      if len(qmc_nodes) > 0:
+        for qmc_node in qmc_nodes:
+          root.append(qmc_node)
+        # end for
+      # end if
+    
+      doc.write(inp_name,pretty_print=True)
+    # end def write_qmcpack_input
 
 # end class
