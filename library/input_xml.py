@@ -419,6 +419,7 @@ class InputXml:
       Output:
         node: lxml.etree.Element, <multideterminant> node
       """
+      print('obsolete function! Use uhf_multideterminant_from_ci instead')
       ndet = len(ci_coeff)
       node = etree.Element('multideterminant',{'optimize':'no','spo_up':spo_up,'spo_dn':spo_dn})
       detlist = etree.Element('detlist',{'size':str(ndet),'type':'DETS'
@@ -433,6 +434,53 @@ class InputXml:
         # end if
         alpha = self.occupy_str(idet*nfill,nfill,nstate)
         beta = self.occupy_str(idet*nfill,nfill,nstate)
+        det = etree.Element('ci',{'id':'CIcoeff_%d'%idet,'coeff':coeff_text,'alpha':alpha,'beta':beta})
+        detlist.append(det)
+      # end for idet
+      return node
+    # end def multideterminant_from_ci
+    
+    def uhf_multideterminant_from_ci(self,ci_coeff,nfill_map,nstate_map
+      ,spo_name_map={0:'spo_up',1:'spo_dn'}
+      ,cutoff=1e-16,real_coeff=False):
+      """ construct the <multideterminant> xml node from an array of CI coefficients
+      Inputs:
+        ci_coeff:     list of float/complex, determinant expansion coefficients
+        nfill_map:    dict int ispin -> int nfill, number of filled orbitals in each determinant for species
+        nstate_map:   dict int ispin -> int nstate, total number of orbitals in sposet for species
+        spo_name_map: dict int ispin -> str spo_name, name of sposet to assign to species
+        cutoff: float, ignore CI coefficients below cutoff
+        real_coeff: write CI coefficients as real numbers to use real code
+      Output:
+        node: lxml.etree.Element, <multideterminant> node
+      """
+      up_dn_msg = 'multideterminant in QMCPACK is hard-coded for up and down electrons for now'
+      assert len(spo_name_map) == 2, up_dn_msg
+      assert len(nfill_map)    == 2, up_dn_msg
+      assert len(nstate_map)   == 2, up_dn_msg
+
+      nstate_up = nstate_map[0]; nstate_dn = nstate_map[1]
+      assert nstate_up == nstate_dn, 'number of available orbitals for up and down electrons must be equal by hard code in QMCPACK'
+      spo_up = spo_name_map[0]; spo_dn = spo_name_map[1]
+      nfill_up = nfill_map[0]; nfill_dn = nfill_map[1]
+
+      # initialize <multideterminant> <detlist/> </multideterminant>
+      ndet = len(ci_coeff) 
+      node = etree.Element('multideterminant',{'optimize':'no','spo_up':spo_up,'spo_dn':spo_dn})
+      detlist = etree.Element('detlist',{'size':str(ndet),'type':'DETS'
+        ,'nca':'0','ncb':'0','nea':str(nfill_up),'neb':str(nfill_dn)
+        ,'cutoff':str(cutoff),'nstates':str(nstate_up)})
+      node.append(detlist)
+
+      # fill <detlist>
+      for idet in range(ndet):
+        if real_coeff:
+          coeff_text = '%f' % ci_coeff[idet]
+        else:
+          coeff_text = '(%f,%f)' % (ci_coeff[idet].real,ci_coeff[idet].imag)
+        # end if
+        alpha = self.occupy_str(idet*nfill_up,nfill_up,nstate_up)
+        beta = self.occupy_str(idet*nfill_dn,nfill_dn,nstate_dn)
         det = etree.Element('ci',{'id':'CIcoeff_%d'%idet,'coeff':coeff_text,'alpha':alpha,'beta':beta})
         detlist.append(det)
       # end for idet

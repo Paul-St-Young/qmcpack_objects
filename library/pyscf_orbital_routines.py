@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # assume periodic-boundary conditions i.e. import from pyscf.pbc
 import numpy as np
+import pandas as pd
 
 def ao_on_grid(cell):
   from pyscf.pbc.dft import gen_grid,numint
@@ -114,7 +115,6 @@ def mo_orbitals(mo_energy,mo_coeff,ao_on_grid,grid_shape,cell_volume):
     gvecs: a list of integer vectors of shape (npw,ndim), which represent the plane-wave basis in reciprocal space units
     eig_df: a pandas dataframe, one entry for each MO
   """
-  import pandas as pd
 
   # perform Fourier transform to get plane-wave coefficients psig in basis gvecs
   gvecs,psig = mo_coeff_to_psig(mo_coeff,ao_on_grid,grid_shape,cell_volume)
@@ -201,6 +201,39 @@ def multideterminant_orbitals(detlist,nfill,cell,mo_coeff,kpt,ikpt=0,ispin=0):
   eig_df.sort_index()
   return gvecs,eig_df
 # end def multideterminant_orbitals
+
+def uhf_multideterminant_spos(det_list,nfill_map,cell,mo_coeff,kpt):
+  """
+  Inputs:
+    det_list: 4D numpy array of shape (ndet,nmo,nmo,nspin) 
+    nfill_map: dict, map spin index to number of particles e.g. {0:4,1:4} for 4 up 4 down electrons
+    cell: pyscf.pbc.gto.cell
+    mo_coeff: 3D numpy array of shape (nspin,nao,nmo)
+    kpt: 1D numpy array of shape (ndim,) 
+  Outputs:
+    gvecs: 2D numpy array of shape (npw,ndim)
+    eig_df: Kohn-Sham orbitals in plane-wave basis 
+  """
+  ndet,nmo,nmo1,nspin = det_list.shape
+
+  # reuse RHF routines
+  gvecs_list  = []
+  eig_df_list = []
+  for ispin in range(nspin): # up and down
+    print( 'det for spin %d is identity = %s'% (ispin,np.allclose(det_list[0,:,:,ispin],np.eye(nmo))) )
+    gvecs, eig_df = multideterminant_orbitals(det_list[:,:,:,ispin]
+      ,nfill_map[ispin],cell,mo_coeff[ispin],kpt,ikpt=0,ispin=ispin)
+    if ispin > 0:
+      assert np.allclose(gvecs,gvecs_list[0])
+    else:
+      gvecs_list.append(gvecs)
+    # end if
+    eig_df_list.append(eig_df)
+  # end for ispin
+
+  eig_df = pd.concat(eig_df_list)
+  return gvecs,eig_df
+# end def uhf_multideterminant_spos
 
 def generate_pwscf_h5(cell,gvecs,eig_df,pseudized_charge=None,h5_fname='pyscf2pwscf.h5'):
   
