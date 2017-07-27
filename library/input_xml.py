@@ -487,6 +487,20 @@ class InputXml:
       return node
     # end def multideterminant_from_ci
 
+    def uhf_multidet_qmc(self,ci_coeff,nup,ndn,fftgrid,h5_href='pyscf2qmcpack.h5',real_coeff=False):
+      ndet       = len(ci_coeff)
+      wf_node = self.uhf_slater(h5_href,{'u':nup*ndet,'d':ndn*ndet},fftgrid=' '.join(fftgrid.astype(str)))
+      mdet_node = self.uhf_multideterminant_from_ci(ci_coeff,{0:nup,1:ndn},{0:nup*ndet,1:ndn*ndet},real_coeff=real_coeff)
+      # use default spo_name_map for now, !!!! check consistency with <sposet_builder>
+    
+      # swap out <slaterdeterminant> for <multideterminant>
+      ds_node = wf_node.find('.//determinantset')
+      sd_node = ds_node.find('.//slaterdeterminant')
+      ds_node.remove(sd_node)
+      ds_node.append(mdet_node)
+      return wf_node
+    # end def uhf_multidet_qmc
+
     def one_body_jastrow(self,ipset_node,cusp=None):
       ion_pset_name = ipset_node.get('name')
       jas_node  = etree.Element('jastrow',{'type':'One-Body','name':'J1','function':'bspline','source':ion_pset_name})
