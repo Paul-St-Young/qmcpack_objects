@@ -6,6 +6,20 @@ def str2comp(line):
   return real+1j*imag
 # end def str2comp
 
+def val(line,sep='=',pos=-1):
+  return line.split(sep)[pos].strip()
+# end def val
+
+def get_val(name,mm,sep='=',pos=-1):
+  idx = mm.find(name)
+  if idx == -1:
+      raise RuntimeError('%s not found'%name)
+  # end if
+  mm.seek(idx)
+  line = mm.readline()
+  return val(line,sep,pos)
+# end def get_val
+
 def read_header(mm,header_loc=0):
   """ read the phfmol determinant file header 
   Inputs:
@@ -17,16 +31,6 @@ def read_header(mm,header_loc=0):
   Effect:
     mm will be rewund to header_loc
   """
-  def val(line,sep='=',pos=-1):
-    return line.split(sep)[pos].strip()
-  def get_val(name,mm,sep='=',pos=-1):
-    idx = mm.find(name)
-    if idx == -1:
-        raise RuntimeError('%s not found'%name)
-    # end if
-    mm.seek(idx)
-    line = mm.readline()
-    return val(line,sep,pos)
 
   mm.seek(header_loc) # default is to rewind file
 
