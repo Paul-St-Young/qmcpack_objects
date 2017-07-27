@@ -439,13 +439,16 @@ class InputXml:
       return node
     # end def multideterminant_from_ci
 
-    def one_body_jastrow(self,ipset_node):
+    def one_body_jastrow(self,ipset_node,cusp=None):
       ion_pset_name = ipset_node.get('name')
       jas_node  = etree.Element('jastrow',{'type':'One-Body','name':'J1','function':'bspline','source':ion_pset_name})
       for group in ipset_node.findall('group'):
         ion_name = group.get('name')
         corr_node = self.bspline_functor_from_dict()
         corr_node.set('elementType',ion_name)
+        if cusp is not None:
+          corr_node.set('cusp',cusp)
+        # end if
         coeff_node = corr_node.find('.//coefficients')
         coeff_node.set('id','e%s'%ion_name)
         jas_node.append(corr_node)
@@ -628,7 +631,7 @@ class InputXml:
     def bspline_functor_from_dict(self,entry={
         'size':8,
         'rcut':None,
-        'cusp':0.0,
+        'cusp':None,
         'id':'coeff',
         'optimize':'yes',
         'coeff':np.array([0,0,0,0,0,0,0,0])
