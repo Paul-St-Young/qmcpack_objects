@@ -607,18 +607,19 @@ class InputXml:
     def get_dmc_nodes(self,target_walkers,time_step_list=[0.02,0.01]
       ,correlation_time = 1.0
       ,nvmc_walkers     = 1
+      ,checkpoint       = 0
       ,param_name_val_map = {
         'substeps':1,
         'steps':10,
         'timestep':1.0,
         'warmupsteps':10,
-        'blocks':100,
+        'blocks':40,
         'usedrift':'yes'
        }):
 
       vmc_nv_map = param_name_val_map.copy()
       vmc_nv_map.update({'samples':target_walkers})
-      vmc_node = self.get_qmc_node(nvmc_walkers,param_name_val_map=vmc_nv_map)
+      vmc_node = self.get_qmc_node(nvmc_walkers,param_name_val_map=vmc_nv_map,checkpoint=checkpoint)
 
       nodes = [vmc_node] # use a VMC to get initial walkers
       for ts in time_step_list:
@@ -632,7 +633,7 @@ class InputXml:
         dmc_nv_map['steps'] = str(steps)
 
         dmc_nv_map.update({'targetwalkers':target_walkers})
-        dmc_node = self.get_qmc_node(1,method='dmc',param_name_val_map=dmc_nv_map)
+        dmc_node = self.get_qmc_node(1,method='dmc',param_name_val_map=dmc_nv_map,checkpoint=checkpoint)
         nodes.append(dmc_node)
       # end for ts
 
