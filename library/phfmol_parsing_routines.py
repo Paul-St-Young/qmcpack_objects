@@ -199,7 +199,7 @@ def read_phfrun_det_part(mm,mo_header_idx,nbas,real_or_imag):
   return mydet
 # end def read_phfrun_det_part
 
-def all_idx_with_label(mm,label,max_ndet=8192):
+def all_idx_with_label(mm,label,max_ndet):
   mm.seek(0)
   idx_list   = np.zeros(max_ndet,dtype=int)
   for idet in range(max_ndet):
@@ -217,8 +217,8 @@ def all_idx_with_label(mm,label,max_ndet=8192):
   return idx_list
 # end def all_idx_with_label
 
-def read_phfrun_det(mm,prefix,nbas):
-  idx_list = all_idx_with_label(mm,prefix)
+def read_phfrun_det(mm,prefix,nbas,max_ndet=8192):
+  idx_list = all_idx_with_label(mm,prefix,max_ndet)
   last_pos = np.where(idx_list==-1)[0][0]
   det_real = read_phfrun_det_part(mm,idx_list[last_pos-2],nbas,'real')
   det_imag = read_phfrun_det_part(mm,idx_list[last_pos-1],nbas,'imag')

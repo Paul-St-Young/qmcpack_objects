@@ -278,6 +278,30 @@ class InputXml:
       # end for
       return ham_node
     # end hamiltonian
+    def sk(self):
+      est_node = etree.Element('estimator',{'type':'sk','name':'sk','hdf5':'yes'})
+      return est_node
+    # end def sk
+    def gr(self,num_bin):
+      est_node = etree.Element('estimator',{'type':'gofr','name':'gofr','num_bin':str(num_bin)})
+      return est_node
+    # end def gr
+    def spindensity(self,grid_shape):
+      est_node = etree.Element('estimator',{'type':'spindensity','name':'spin_density','report':'yes'})
+      param_node = etree.Element('parameter',{'name':'grid'})
+      param_node.text = ' '.join(grid_shape.astype(str))
+      est_node.append(param_node)
+      return est_node
+    # end def spindensity
+    def sksp(self):
+      est_node = etree.Element('estimator',{'type':'structurefactor','name':'sksp','report':'yes'})
+      return est_node
+    # end def sksp
+    def localmoment(self,source='ion0'):
+      est_node = etree.Element('estimator',{'type':'localmoment','name':'mloc','source':source})
+      return est_node
+    # end def localmoment
+
     # ----------------
 
     # ----------------

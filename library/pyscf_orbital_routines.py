@@ -220,7 +220,7 @@ def uhf_multideterminant_spos(det_list,nfill_map,cell,mo_coeff,kpt):
   gvecs_list  = []
   eig_df_list = []
   for ispin in range(nspin): # up and down
-    print( 'det for spin %d is identity = %s'% (ispin,np.allclose(det_list[0,:,:,ispin],np.eye(nmo))) )
+    print( 'det0 for spin %d is identity = %s'% (ispin,np.allclose(det_list[0,:,:,ispin],np.eye(nmo))) )
     gvecs, eig_df = multideterminant_orbitals(det_list[:,:,:,ispin]
       ,nfill_map[ispin],cell,mo_coeff[ispin],kpt,ikpt=0,ispin=ispin)
     if ispin > 0:
