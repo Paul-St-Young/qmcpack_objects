@@ -143,6 +143,50 @@ def parse_determinants(fname,nmo):
   return det_list
 # end def parse_determinants
 
+def arr2text(arr):
+  """ convert an array of complex numbers to fortran style column of text """
+  comp2str  = lambda num: '(%.16e,%.16e)'%(num.real,num.imag)
+  text_list = [comp2str(num) for num in arr]
+  return "\n".join(text_list)
+# end def
+
+def unparse_determinants(det_list_fname):
+  """ inverse of parse_determinants """
+  # read determinants
+  det_list = np.loadtxt(det_list_fname).view(complex)
+  ndet1,nmo2_ud = det_list.shape
+  assert ndet1 == ndet
+  nmo = int(round( np.sqrt(nmo2_ud/2) ))
+  assert 2*nmo*nmo == nmo2_ud
+
+  # !!!! hard code header for now
+  header = '''  &FCI
+  UHF = 1
+  FullMO
+  CMajor
+  NCI=%d
+  TYPE = rotated
+  FORMAT = PHF
+  /''' % ndet
+
+  # fake CI coefficients
+  ci_text = ''
+  for ici in range(ndet):
+    ci_text += "\n(%f,%f)" % (1.0,0.0)
+  # end for
+
+  print ndet,nmo
+
+  det_text = ''
+  for idet in range(ndet):
+    det_text += "\n Determinant:%13d" % (idet+1) # 1-index in fortran
+    det_ud = det_list[idet].reshape(nmo,nmo,nspin).flatten(order='F')
+    det_text += "\n" + arr2text(det_ud)
+  # end for idet
+
+  return header + ci_text + det_text
+# end def 
+
 def read_phfrun_det_part(mm,mo_header_idx,nbas,real_or_imag):
   """ read either the real or the complex part of the determinant printed in phfrun.out
   Inputs: 
