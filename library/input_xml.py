@@ -598,9 +598,9 @@ class InputXml:
       ,e_weight=0.95,urv_weight=0.0,rv_weight=0.05
       ,param_name_val_map = {
         'samples':16384,
-        'substeps':10,
+        'substeps':3,
         'steps':1,
-        'timestep':1.0,
+        'timestep':0.8,
         'warmupsteps':10,
         'blocks':100,
         'usedrift':'yes'
